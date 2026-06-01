@@ -1,34 +1,40 @@
-const API_KEY = "d8etek9r01qub7kep690d8etek9r01qub7kep69g";
+const API_KEY = "PASTE_YOUR_FINNHUB_API_KEY_HERE";
 
 let currentUser = null;
 let stocks = {};
 
 function createAccount() {
   const username = document.getElementById("usernameInput").value.trim();
+  const password = document.getElementById("passwordInput").value.trim();
 
-  if (!username) {
-    alert("Please enter a username.");
+  if (!username || !password) {
+    alert("Please enter a username and password.");
     return;
   }
 
-  currentUser = username;
-
   let users = JSON.parse(localStorage.getItem("users")) || {};
 
-  if (!users[username]) {
+  if (users[username]) {
+    if (users[username].password !== password) {
+      alert("Wrong password.");
+      return;
+    }
+  } else {
     users[username] = {
+      password: password,
       cash: 10000,
       portfolio: {},
       watchlist: [],
-      badges: ["Welcome Investor"]
+      badges: ["Welcome Investor"],
+      history: []
     };
   }
 
+  currentUser = username;
   localStorage.setItem("users", JSON.stringify(users));
 
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("appPage").classList.remove("hidden");
-
   document.getElementById("welcomeText").innerText = `Welcome, ${username}!`;
 
   updateAll();
@@ -46,6 +52,7 @@ function showPage(pageId) {
   if (pageId === "watchlist") updateWatchlist();
   if (pageId === "leaderboard") updateLeaderboard();
   if (pageId === "badges") updateBadges();
+  if (pageId === "history") updateHistory();
 }
 
 async function searchStock() {
@@ -66,11 +73,21 @@ async function searchStock() {
     const searchData = await searchResponse.json();
 
     if (!searchData.result || searchData.result.length === 0) {
-      document.getElementById("stockResult").innerHTML = "<h2>Stock not found.</h2>";
+      document.getElementById("stockResult").innerHTML =
+        "<h2>Stock not found. Try AAPL, Apple, TSLA, Tesla, MSFT, or Microsoft.</h2>";
       return;
     }
 
-    const match = searchData.result[0];
+    let match = searchData.result.find(item =>
+      item.type === "Common Stock" &&
+      !item.symbol.includes(".") &&
+      !item.symbol.includes(":")
+    );
+
+    if (!match) {
+      match = searchData.result[0];
+    }
+
     const symbol = match.symbol;
     const name = match.description || symbol;
 
@@ -84,7 +101,7 @@ async function searchStock() {
 
     if (!price || price === 0) {
       document.getElementById("stockResult").innerHTML =
-        `<h2>${name} found, but price was not available.</h2>`;
+        `<h2>${name} (${symbol}) was found, but Finnhub did not return a price.</h2>`;
       return;
     }
 
@@ -96,7 +113,7 @@ async function searchStock() {
     document.getElementById("stockResult").innerHTML = `
       <div class="stock-card">
         <h2>${name} (${symbol})</h2>
-        <h3>Price: $${price.toFixed(2)}</h3>
+        <h3>Current Price: $${price.toFixed(2)}</h3>
 
         <input id="sharesInput" type="number" placeholder="Number of shares">
 
@@ -110,12 +127,84 @@ async function searchStock() {
       </div>
     `;
 
-    drawChart(symbol);
+    await drawHistoricalChart(symbol);
 
   } catch (error) {
     document.getElementById("stockResult").innerHTML =
       "<h2>Error finding stock. Check your Finnhub API key.</h2>";
   }
+}
+
+async function drawHistoricalChart(symbol) {
+  const canvas = document.getElementById("stockChart");
+  const ctx = canvas.getContext("2d");
+
+  const today = Math.floor(Date.now() / 1000);
+  const thirtyDaysAgo = today - 30 * 24 * 60 * 60;
+
+  const candleUrl =
+    `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${thirtyDaysAgo}&to=${today}&token=${API_KEY}`;
+
+  try {
+    const response = await fetch(candleUrl);
+    const data = await response.json();
+
+    if (data.s !== "ok" || !data.c || data.c.length === 0) {
+      drawFallbackChart(symbol);
+      return;
+    }
+
+    const prices = data.c;
+    drawLineChart(symbol, prices);
+
+  } catch (error) {
+    drawFallbackChart(symbol);
+  }
+}
+
+function drawLineChart(symbol, prices) {
+  const canvas = document.getElementById("stockChart");
+  const ctx = canvas.getContext("2d");
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = "green";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+
+  prices.forEach((price, index) => {
+    const x = 30 + index * ((width - 60) / (prices.length - 1));
+    const y = height - 40 - ((price - min) / (max - min)) * (height - 80);
+
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  ctx.fillStyle = "black";
+  ctx.font = "18px Arial";
+  ctx.fillText(`${symbol} 30-Day Price History`, 20, 30);
+}
+
+function drawFallbackChart(symbol) {
+  const basePrice = stocks[symbol].price;
+  let prices = [];
+
+  for (let i = 0; i < 12; i++) {
+    prices.push(basePrice + Math.floor(Math.random() * 40 - 20));
+  }
+
+  drawLineChart(symbol, prices);
 }
 
 function buyStock(symbol) {
@@ -136,6 +225,8 @@ function buyStock(symbol) {
 
   data.cash -= cost;
   data.portfolio[symbol] = (data.portfolio[symbol] || 0) + shares;
+
+  addHistory(data, `Bought ${shares} shares of ${symbol} for $${cost.toFixed(2)}`);
 
   if (!data.badges.includes("First Stock Bought")) {
     data.badges.push("First Stock Bought");
@@ -161,12 +252,16 @@ function sellStock(symbol) {
     return;
   }
 
+  const value = shares * stocks[symbol].price;
+
   data.portfolio[symbol] -= shares;
-  data.cash += shares * stocks[symbol].price;
+  data.cash += value;
 
   if (data.portfolio[symbol] === 0) {
     delete data.portfolio[symbol];
   }
+
+  addHistory(data, `Sold ${shares} shares of ${symbol} for $${value.toFixed(2)}`);
 
   saveUserData(data);
   updateAll();
@@ -179,6 +274,7 @@ function addToWatchlist(symbol) {
 
   if (!data.watchlist.includes(symbol)) {
     data.watchlist.push(symbol);
+    addHistory(data, `Added ${symbol} to watchlist`);
   }
 
   if (!data.badges.includes("Watchlist Starter")) {
@@ -189,6 +285,34 @@ function addToWatchlist(symbol) {
   updateAll();
 
   alert(`${symbol} added to watchlist.`);
+}
+
+function addHistory(data, text) {
+  if (!data.history) {
+    data.history = [];
+  }
+
+  data.history.unshift({
+    text: text,
+    time: new Date().toLocaleString()
+  });
+}
+
+function updateHistory() {
+  const data = getUserData();
+
+  if (!data.history || data.history.length === 0) {
+    document.getElementById("historyList").innerHTML =
+      "<p>No history yet.</p>";
+    return;
+  }
+
+  document.getElementById("historyList").innerHTML = data.history.map(item =>
+    `<div class="card">
+      <p>${item.text}</p>
+      <small>${item.time}</small>
+    </div>`
+  ).join("");
 }
 
 function getUserData() {
@@ -211,6 +335,7 @@ function updateAll() {
   updateWatchlist();
   updateLeaderboard();
   updateBadges();
+  updateHistory();
 }
 
 function updatePortfolio() {
@@ -228,7 +353,7 @@ function updatePortfolio() {
       <div class="card">
         <h2>${name} (${symbol})</h2>
         <p>Shares: ${shares}</p>
-        <p>Price: ${price ? "$" + price.toFixed(2) : "Search stock again to update price"}</p>
+        <p>Price: ${price ? "$" + price.toFixed(2) : "Search again to update price"}</p>
         <p>Value: $${value.toFixed(2)}</p>
       </div>
     `;
@@ -248,7 +373,7 @@ function updateWatchlist() {
     html += `
       <div class="card">
         <h2>${stock ? stock.name : symbol} (${symbol})</h2>
-        <p>Price: ${stock ? "$" + stock.price.toFixed(2) : "Search stock again to update price"}</p>
+        <p>Price: ${stock ? "$" + stock.price.toFixed(2) : "Search again to update price"}</p>
       </div>
     `;
   });
@@ -291,41 +416,6 @@ function updateBadges() {
   ).join("");
 }
 
-function drawChart(symbol) {
-  const canvas = document.getElementById("stockChart");
-  const ctx = canvas.getContext("2d");
-
-  const basePrice = stocks[symbol].price;
-  let prices = [];
-
-  for (let i = 0; i < 12; i++) {
-    prices.push(basePrice + Math.floor(Math.random() * 40 - 20));
-  }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.strokeStyle = "green";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-
-  prices.forEach((price, index) => {
-    const x = index * 45 + 25;
-    const y = 230 - (price / basePrice) * 100;
-
-    if (index === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  });
-
-  ctx.stroke();
-
-  ctx.fillStyle = "black";
-  ctx.font = "18px Arial";
-  ctx.fillText(`${symbol} simulated chart`, 20, 30);
-}
-
 function logout() {
   currentUser = null;
 
@@ -333,4 +423,5 @@ function logout() {
   document.getElementById("loginPage").classList.remove("hidden");
 
   document.getElementById("usernameInput").value = "";
+  document.getElementById("passwordInput").value = "";
 }
