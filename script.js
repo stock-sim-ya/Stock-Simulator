@@ -1,4 +1,4 @@
-const API_KEY = "d8etek9r01qub7kep690d8etek9r01qub7kep69g";
+const API_KEY = "PASTE_YOUR_FINNHUB_API_KEY_HERE";
 
 let currentUser = null;
 let stocks = {};
