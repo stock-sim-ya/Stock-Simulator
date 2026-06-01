@@ -1,4 +1,4 @@
-const API_KEY = "d8etek9r01qub7kep690d8etek9r01qub7kep69g";
+const API_KEY = "PASTE_YOUR_FINNHUB_API_KEY_HERE";
 
 let currentUser = null;
 let stocks = {};
@@ -29,8 +29,7 @@ function createAccount() {
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("appPage").classList.remove("hidden");
 
-  document.getElementById("welcomeText").innerText =
-    `Welcome, ${username}!`;
+  document.getElementById("welcomeText").innerText = `Welcome, ${username}!`;
 
   updateAll();
   showPage("stockBuying");
@@ -67,13 +66,11 @@ async function searchStock() {
     const searchData = await searchResponse.json();
 
     if (!searchData.result || searchData.result.length === 0) {
-      document.getElementById("stockResult").innerHTML =
-        "<h2>Stock not found.</h2>";
+      document.getElementById("stockResult").innerHTML = "<h2>Stock not found.</h2>";
       return;
     }
 
     const match = searchData.result[0];
-
     const symbol = match.symbol;
     const name = match.description || symbol;
 
@@ -117,7 +114,7 @@ async function searchStock() {
 
   } catch (error) {
     document.getElementById("stockResult").innerHTML =
-      "<h2>Error finding stock. Check your API key.</h2>";
+      "<h2>Error finding stock. Check your Finnhub API key.</h2>";
   }
 }
 
