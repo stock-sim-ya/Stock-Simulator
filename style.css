@@ -5,58 +5,72 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
-  color: white;
+  font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
+  color: white;
 }
 
+/* IMPORTANT */
 .hidden {
   display: none !important;
 }
 
-/* LOGIN PAGE */
+/* ==========================
+   LOGIN PAGE
+========================== */
 
 .login-bg {
-  height: 100vh;
   width: 100%;
+  height: 100vh;
+
   background:
-    linear-gradient(rgba(0,0,0,.65), rgba(0,0,0,.65)),
+    linear-gradient(
+      rgba(0,0,0,.65),
+      rgba(0,0,0,.65)
+    ),
     url("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=2000&q=80");
+
   background-size: cover;
   background-position: center;
+
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .login-card {
-  width: 400px;
+  width: 420px;
+
   padding: 40px;
+
   border-radius: 20px;
+
   text-align: center;
+
   background: rgba(0,0,0,.75);
-  box-shadow: 0 0 25px rgba(0,255,100,.4);
+
+  box-shadow:
+    0 0 25px rgba(0,255,100,.4);
 }
 
 .login-card h1 {
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   font-size: 38px;
+}
+
+.login-card p {
+  margin-bottom: 25px;
+  color: #dddddd;
 }
 
 .login-card input {
   width: 100%;
-  padding: 15px;
-  border-radius: 10px;
-  border: none;
   margin-bottom: 15px;
-  font-size: 16px;
 }
 
-.login-card button {
-  width: 100%;
-}
-
-/* APP PAGE */
+/* ==========================
+   APP PAGE
+========================== */
 
 #appPage {
   min-height: 100vh;
@@ -66,18 +80,26 @@ body {
   display: flex;
 }
 
-/* SIDEBAR */
+/* ==========================
+   SIDEBAR
+========================== */
 
 .sidebar {
   width: 250px;
-  background: #06110b;
-  padding: 20px;
+
+  height: 100vh;
+
   position: fixed;
   left: 0;
   top: 0;
-  height: 100vh;
+
+  background: #07140d;
+
+  border-right: 2px solid #00c853;
+
+  padding: 20px;
+
   overflow-y: auto;
-  border-right: 2px solid #00cc66;
 }
 
 .sidebar h2 {
@@ -91,18 +113,24 @@ body {
   margin-bottom: 10px;
 }
 
-/* MAIN */
+/* ==========================
+   MAIN CONTENT
+========================== */
 
 main {
   margin-left: 250px;
   width: calc(100% - 250px);
 }
 
-/* PAGES */
+/* ==========================
+   PAGE SECTIONS
+========================== */
 
 .page {
   min-height: 100vh;
+
   padding: 40px;
+
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -112,95 +140,182 @@ main {
   margin-bottom: 20px;
 }
 
-/* BACKGROUNDS */
+/* ==========================
+   PAGE BACKGROUNDS
+========================== */
 
 .page-bg-search {
   background:
-    linear-gradient(rgba(0,0,0,.65), rgba(0,0,0,.65)),
+    linear-gradient(
+      rgba(0,0,0,.65),
+      rgba(0,0,0,.65)
+    ),
     url("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=2000&q=80");
 }
 
 .page-bg-portfolio {
   background:
-    linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+    linear-gradient(
+      rgba(0,0,0,.70),
+      rgba(0,0,0,.70)
+    ),
     url("https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=2000&q=80");
 }
 
 .page-bg-watchlist {
   background:
-    linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+    linear-gradient(
+      rgba(0,0,0,.70),
+      rgba(0,0,0,.70)
+    ),
     url("https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=2000&q=80");
 }
 
 .page-bg-leaderboard {
   background:
-    linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+    linear-gradient(
+      rgba(0,0,0,.70),
+      rgba(0,0,0,.70)
+    ),
     url("https://images.unsplash.com/photo-1569025690938-a00729c9e1f9?auto=format&fit=crop&w=2000&q=80");
+}
+
+.page-bg-history {
+  background:
+    linear-gradient(
+      rgba(0,0,0,.70),
+      rgba(0,0,0,.70)
+    ),
+    url("https://images.unsplash.com/photo-1642790551116-18e150f248e3?auto=format&fit=crop&w=2000&q=80");
 }
 
 .page-bg-badges {
   background:
-    linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+    linear-gradient(
+      rgba(0,0,0,.70),
+      rgba(0,0,0,.70)
+    ),
     url("https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=2000&q=80");
 }
 
 .page-bg-news {
   background:
-    linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+    linear-gradient(
+      rgba(0,0,0,.70),
+      rgba(0,0,0,.70)
+    ),
     url("https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=2000&q=80");
 }
 
-/* INPUTS AND BUTTONS */
+/* ==========================
+   INPUTS
+========================== */
 
 input {
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  margin: 8px 0;
   width: 300px;
+
+  padding: 12px;
+
+  border: none;
+
+  border-radius: 10px;
+
   font-size: 16px;
 }
 
+/* ==========================
+   BUTTONS
+========================== */
+
 button {
   padding: 12px 18px;
+
   border: none;
+
   border-radius: 10px;
+
   background: #00c853;
+
   color: white;
-  cursor: pointer;
+
   font-weight: bold;
+
+  cursor: pointer;
+
+  transition: .2s;
 }
 
 button:hover {
   background: #00a344;
+  transform: scale(1.02);
 }
 
-/* CARDS */
+/* ==========================
+   CARDS
+========================== */
 
 .card {
   background: rgba(0,0,0,.75);
+
   padding: 20px;
-  border-radius: 15px;
+
   margin-top: 15px;
+
+  border-radius: 15px;
+
   max-width: 700px;
 }
 
 .stock-card {
-  background: rgba(0,0,0,.8);
+  background: rgba(0,0,0,.82);
+
   padding: 25px;
-  border-radius: 20px;
+
   margin-top: 20px;
-  max-width: 700px;
+
+  border-radius: 20px;
+
+  max-width: 800px;
 }
+
+/* ==========================
+   CHART
+========================== */
 
 canvas {
-  background: white;
-  border-radius: 10px;
   margin-top: 20px;
+
+  background: white;
+
+  border-radius: 12px;
 }
 
+/* ==========================
+   LEADERBOARD
+========================== */
+
 #leaderboardList {
+  padding-left: 30px;
   font-size: 20px;
   line-height: 2;
-  padding-left: 30px;
+}
+
+/* ==========================
+   MOBILE
+========================== */
+
+@media (max-width: 768px) {
+
+  .sidebar {
+    width: 200px;
+  }
+
+  main {
+    margin-left: 200px;
+    width: calc(100% - 200px);
+  }
+
+  input {
+    width: 100%;
+  }
 }
