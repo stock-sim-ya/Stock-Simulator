@@ -9,17 +9,15 @@
 <div id="loginPage" class="login-bg">
   <div class="login-card">
     <h1>📈 Stock Simulator</h1>
-    <p>Grow your money. Build your portfolio.</p>
-
     <input id="usernameInput" placeholder="Enter username">
-    <button onclick="createAccount()">Create Account / Login</button>
+    <button onclick="createAccount()">Login / Create Account</button>
   </div>
 </div>
 
 <div id="appPage" class="hidden">
   <div class="sidebar">
     <h2>📊 Stock Sim</h2>
-    <button onclick="showPage('search')">Search Stocks</button>
+    <button onclick="showPage('stockBuying')">Buy Stocks</button>
     <button onclick="showPage('portfolio')">Portfolio</button>
     <button onclick="showPage('watchlist')">Watchlist</button>
     <button onclick="showPage('leaderboard')">Leaderboard</button>
@@ -29,13 +27,13 @@
   </div>
 
   <main>
-    <section id="search" class="page page-bg-search">
-      <h1>Search Stocks</h1>
+    <section id="stockBuying" class="page page-bg-search">
+      <h1>Buy Stocks</h1>
       <p id="welcomeText"></p>
       <h2>Cash: $<span id="cashDisplay">10000</span></h2>
 
-      <input id="stockSearch" placeholder="Search AAPL, TSLA, NVDA...">
-      <button onclick="searchStock()">Search</button>
+      <input id="stockSearch" placeholder="Search company or symbol">
+      <button onclick="searchStock()">Find Stock</button>
 
       <div id="stockResult"></div>
     </section>
@@ -56,16 +54,13 @@
     </section>
 
     <section id="badges" class="page hidden page-bg-badges">
-      <h1>Badges & Achievements</h1>
+      <h1>Badges</h1>
       <div id="badgesList"></div>
     </section>
 
     <section id="news" class="page hidden page-bg-news">
-      <h1>Stock News Feed</h1>
-      <div class="card">📢 Apple releases new AI features.</div>
-      <div class="card">🚗 Tesla stock moves after EV sales update.</div>
-      <div class="card">🤖 Nvidia continues growing with AI demand.</div>
-      <div class="card">📦 Amazon expands same-day delivery.</div>
+      <h1>News Feed</h1>
+      <div class="card">📢 Stock market news will appear here.</div>
     </section>
   </main>
 </div>
