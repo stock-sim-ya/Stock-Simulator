@@ -58,9 +58,15 @@ function showPage(pageId) {
 async function searchStock() {
   const searchText = document.getElementById("stockSearch").value.trim();
 
-  if (!searchText) {
-    alert("Type a company name or stock symbol.");
-    return;
+  var searchTerm = searchText.toUpperCase();
+
+  if (
+    searchTerm === "S&P 500" ||
+    searchTerm === "SP500" ||
+    searchTerm === "S AND P 500"
+  ) {
+    document.getElementById("stockSearch").value = "SPY";
+    return searchStock();
   }
 
   document.getElementById("stockResult").innerHTML = "<h2>Searching...</h2>";
