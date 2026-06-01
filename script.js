@@ -78,19 +78,16 @@ async function searchStock() {
       return;
     }
 
-    let match = searchData.result.find(item =>
-    const match = searchData.result.find(item =>
-  item.symbol &&
-  (
-    item.type === "Common Stock" ||
-    item.type === "ETF" ||
-    item.type === "ETP" ||
-    item.type === "Index"
-  )
-) || searchData.result[0];
-      !item.symbol.includes(".") &&
-      !item.symbol.includes(":")
-    );
+   const match =
+  searchData.result.find(item =>
+    item.symbol &&
+    (
+      item.type === "Common Stock" ||
+      item.type === "ETF" ||
+      item.type === "ETP" ||
+      item.type === "Index"
+    )
+  ) || searchData.result[0];
 
     if (!match) {
       match = searchData.result[0];
