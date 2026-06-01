@@ -1,17 +1,7 @@
-let currentUser = null;
+const API_KEY = "d8etek9r01qub7kep690d8etek9r01qub7kep69g";
 
-const stocks = {
-  AAPL: { name: "Apple", price: 195 },
-  TSLA: { name: "Tesla", price: 178 },
-  NVDA: { name: "Nvidia", price: 1120 },
-  AMZN: { name: "Amazon", price: 185 },
-  GOOGL: { name: "Alphabet", price: 172 },
-  MSFT: { name: "Microsoft", price: 430 },
-  META: { name: "Meta", price: 485 },
-  NFLX: { name: "Netflix", price: 640 },
-  UBER: { name: "Uber", price: 68 },
-  DIS: { name: "Disney", price: 101 }
-};
+let currentUser = null;
+let stocks = {};
 
 function createAccount() {
   const username = document.getElementById("usernameInput").value.trim();
@@ -39,21 +29,13 @@ function createAccount() {
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("appPage").classList.remove("hidden");
 
-  document.getElementById("welcomeText").innerText = `Welcome, ${username}! Start searching stocks below.`;
+  document.getElementById("welcomeText").innerText =
+    `Welcome, ${username}!`;
 
   updateAll();
-  showPage("search");
-}
 
-function getUserData() {
-  const users = JSON.parse(localStorage.getItem("users")) || {};
-  return users[currentUser];
-}
-
-function saveUserData(data) {
-  const users = JSON.parse(localStorage.getItem("users")) || {};
-  users[currentUser] = data;
-  localStorage.setItem("users", JSON.stringify(users));
+  // After username, open leaderboard first
+  showPage("leaderboard");
 }
 
 function showPage(pageId) {
@@ -63,52 +45,105 @@ function showPage(pageId) {
 
   document.getElementById(pageId).classList.remove("hidden");
 
+  if (pageId === "stockBuying") updateAll();
   if (pageId === "portfolio") updatePortfolio();
   if (pageId === "watchlist") updateWatchlist();
   if (pageId === "leaderboard") updateLeaderboard();
   if (pageId === "badges") updateBadges();
 }
 
-function searchStock() {
-  const symbol = document.getElementById("stockSearch").value.toUpperCase().trim();
+async function searchStock() {
+  const searchText = document.getElementById("stockSearch").value.trim();
 
-  if (!stocks[symbol]) {
-    document.getElementById("stockResult").innerHTML =
-      `<h2>Stock not found</h2><p>Try AAPL, TSLA, NVDA, AMZN, GOOGL, MSFT, META, NFLX, UBER, or DIS.</p>`;
+  if (!searchText) {
+    alert("Type a company name or stock symbol.");
     return;
   }
 
-  const stock = stocks[symbol];
+  document.getElementById("stockResult").innerHTML = "<h2>Searching...</h2>";
 
-  document.getElementById("stockResult").innerHTML = `
-    <div class="stock-card">
-      <h2>${stock.name} (${symbol})</h2>
-      <h3>Price: $${stock.price}</h3>
+  try {
+    const searchUrl =
+      `https://finnhub.io/api/v1/search?q=${encodeURIComponent(searchText)}&token=${API_KEY}`;
 
-      <input id="sharesInput" type="number" placeholder="Number of shares">
+    const searchResponse = await fetch(searchUrl);
+    const searchData = await searchResponse.json();
 
-      <br>
+    if (!searchData.result || searchData.result.length === 0) {
+      document.getElementById("stockResult").innerHTML =
+        "<h2>Stock not found.</h2>";
+      return;
+    }
 
-      <button onclick="buyStock('${symbol}')">Buy</button>
-      <button onclick="sellStock('${symbol}')">Sell</button>
-      <button onclick="addToWatchlist('${symbol}')">Add to Watchlist</button>
+    const match = searchData.result.find(item =>
+      item.type === "Common Stock" ||
+      item.type === "Equity" ||
+      item.symbol
+    );
 
-      <canvas id="stockChart" width="560" height="260"></canvas>
-    </div>
-  `;
+    if (!match) {
+      document.getElementById("stockResult").innerHTML =
+        "<h2>No stock found.</h2>";
+      return;
+    }
 
-  drawChart(symbol);
+    const symbol = match.symbol;
+    const name = match.description || symbol;
+
+    const quoteUrl =
+      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
+
+    const quoteResponse = await fetch(quoteUrl);
+    const quoteData = await quoteResponse.json();
+
+    const price = quoteData.c;
+
+    if (!price || price === 0) {
+      document.getElementById("stockResult").innerHTML =
+        `<h2>${name} (${symbol}) found, but price was unavailable.</h2>`;
+      return;
+    }
+
+    stocks[symbol] = {
+      name: name,
+      price: price
+    };
+
+    document.getElementById("stockResult").innerHTML = `
+      <div class="stock-card">
+        <h2>${name} (${symbol})</h2>
+        <h3>Price: $${price.toFixed(2)}</h3>
+
+        <input id="sharesInput" type="number" placeholder="Number of shares">
+
+        <br>
+
+        <button onclick="buyStock('${symbol}')">Buy</button>
+        <button onclick="sellStock('${symbol}')">Sell</button>
+        <button onclick="addToWatchlist('${symbol}')">Add to Watchlist</button>
+
+        <canvas id="stockChart" width="560" height="260"></canvas>
+      </div>
+    `;
+
+    drawChart(symbol);
+
+  } catch (error) {
+    document.getElementById("stockResult").innerHTML =
+      "<h2>Error finding stock. Check your Finnhub API key.</h2>";
+  }
 }
 
 function buyStock(symbol) {
   const shares = Number(document.getElementById("sharesInput").value);
   const data = getUserData();
-  const cost = shares * stocks[symbol].price;
 
-  if (shares <= 0) {
+  if (!shares || shares <= 0) {
     alert("Enter a valid number of shares.");
     return;
   }
+
+  const cost = shares * stocks[symbol].price;
 
   if (cost > data.cash) {
     alert("Not enough cash.");
@@ -122,18 +157,20 @@ function buyStock(symbol) {
     data.badges.push("First Stock Bought");
   }
 
-  if (Object.keys(data.portfolio).length >= 3 && !data.badges.includes("Diversified Investor")) {
-    data.badges.push("Diversified Investor");
-  }
-
   saveUserData(data);
   updateAll();
+
   alert(`Bought ${shares} shares of ${symbol}.`);
 }
 
 function sellStock(symbol) {
   const shares = Number(document.getElementById("sharesInput").value);
   const data = getUserData();
+
+  if (!shares || shares <= 0) {
+    alert("Enter a valid number of shares.");
+    return;
+  }
 
   if (!data.portfolio[symbol] || data.portfolio[symbol] < shares) {
     alert("You do not own enough shares.");
@@ -149,6 +186,7 @@ function sellStock(symbol) {
 
   saveUserData(data);
   updateAll();
+
   alert(`Sold ${shares} shares of ${symbol}.`);
 }
 
@@ -165,12 +203,28 @@ function addToWatchlist(symbol) {
 
   saveUserData(data);
   updateAll();
+
   alert(`${symbol} added to watchlist.`);
+}
+
+function getUserData() {
+  const users = JSON.parse(localStorage.getItem("users")) || {};
+  return users[currentUser];
+}
+
+function saveUserData(data) {
+  const users = JSON.parse(localStorage.getItem("users")) || {};
+  users[currentUser] = data;
+  localStorage.setItem("users", JSON.stringify(users));
 }
 
 function updateAll() {
   const data = getUserData();
-  document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
+
+  if (document.getElementById("cashDisplay")) {
+    document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
+  }
+
   updatePortfolio();
   updateWatchlist();
   updateLeaderboard();
@@ -183,20 +237,22 @@ function updatePortfolio() {
 
   for (let symbol in data.portfolio) {
     const shares = data.portfolio[symbol];
-    const value = shares * stocks[symbol].price;
+    const price = stocks[symbol]?.price || 0;
+    const name = stocks[symbol]?.name || symbol;
+    const value = shares * price;
 
     html += `
       <div class="card">
-        <h2>${symbol}</h2>
+        <h2>${name} (${symbol})</h2>
         <p>Shares: ${shares}</p>
+        <p>Current Price: ${price ? "$" + price.toFixed(2) : "Search again to update price"}</p>
         <p>Value: $${value.toFixed(2)}</p>
       </div>
     `;
   }
 
-  if (!html) html = "<p>No stocks owned yet.</p>";
-
-  document.getElementById("portfolioList").innerHTML = html;
+  document.getElementById("portfolioList").innerHTML =
+    html || "<p>No stocks owned yet.</p>";
 }
 
 function updateWatchlist() {
@@ -204,18 +260,18 @@ function updateWatchlist() {
   let html = "";
 
   data.watchlist.forEach(symbol => {
+    const stock = stocks[symbol];
+
     html += `
       <div class="card">
-        <h2>${symbol}</h2>
-        <p>${stocks[symbol].name}</p>
-        <p>Price: $${stocks[symbol].price}</p>
+        <h2>${stock?.name || symbol} (${symbol})</h2>
+        <p>Price: ${stock?.price ? "$" + stock.price.toFixed(2) : "Search again to update price"}</p>
       </div>
     `;
   });
 
-  if (!html) html = "<p>No stocks in watchlist yet.</p>";
-
-  document.getElementById("watchlistList").innerHTML = html;
+  document.getElementById("watchlistList").innerHTML =
+    html || "<p>No stocks in watchlist yet.</p>";
 }
 
 function updateLeaderboard() {
@@ -226,7 +282,9 @@ function updateLeaderboard() {
     let netWorth = users[username].cash;
 
     for (let symbol in users[username].portfolio) {
-      netWorth += users[username].portfolio[symbol] * stocks[symbol].price;
+      const shares = users[username].portfolio[symbol];
+      const price = stocks[symbol]?.price || 0;
+      netWorth += shares * price;
     }
 
     list.push({ username, netWorth });
@@ -276,11 +334,14 @@ function drawChart(symbol) {
 
   ctx.fillStyle = "black";
   ctx.font = "18px Arial";
-  ctx.fillText(`${symbol} simulated stock chart`, 20, 30);
+  ctx.fillText(`${symbol} simulated chart`, 20, 30);
 }
 
 function logout() {
   currentUser = null;
+
   document.getElementById("appPage").classList.add("hidden");
   document.getElementById("loginPage").classList.remove("hidden");
+
+  document.getElementById("usernameInput").value = "";
 }
