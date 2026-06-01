@@ -89,13 +89,6 @@ const match =
     )
   ) || searchData.result[0];
 
-if (!match) {
-  match = searchData.result[0];
-}
-    if (!match) {
-      match = searchData.result[0];
-    }
-
     const symbol = match.symbol;
     const name = match.description || symbol;
 
