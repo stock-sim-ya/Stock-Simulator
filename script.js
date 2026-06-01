@@ -33,9 +33,7 @@ function createAccount() {
     `Welcome, ${username}!`;
 
   updateAll();
-
-  // After username, open leaderboard first
-  showPage("leaderboard");
+  showPage("stockBuying");
 }
 
 function showPage(pageId) {
@@ -45,7 +43,6 @@ function showPage(pageId) {
 
   document.getElementById(pageId).classList.remove("hidden");
 
-  if (pageId === "stockBuying") updateAll();
   if (pageId === "portfolio") updatePortfolio();
   if (pageId === "watchlist") updateWatchlist();
   if (pageId === "leaderboard") updateLeaderboard();
@@ -75,17 +72,7 @@ async function searchStock() {
       return;
     }
 
-    const match = searchData.result.find(item =>
-      item.type === "Common Stock" ||
-      item.type === "Equity" ||
-      item.symbol
-    );
-
-    if (!match) {
-      document.getElementById("stockResult").innerHTML =
-        "<h2>No stock found.</h2>";
-      return;
-    }
+    const match = searchData.result[0];
 
     const symbol = match.symbol;
     const name = match.description || symbol;
@@ -100,7 +87,7 @@ async function searchStock() {
 
     if (!price || price === 0) {
       document.getElementById("stockResult").innerHTML =
-        `<h2>${name} (${symbol}) found, but price was unavailable.</h2>`;
+        `<h2>${name} found, but price was not available.</h2>`;
       return;
     }
 
@@ -130,7 +117,7 @@ async function searchStock() {
 
   } catch (error) {
     document.getElementById("stockResult").innerHTML =
-      "<h2>Error finding stock. Check your Finnhub API key.</h2>";
+      "<h2>Error finding stock. Check your API key.</h2>";
   }
 }
 
@@ -221,9 +208,7 @@ function saveUserData(data) {
 function updateAll() {
   const data = getUserData();
 
-  if (document.getElementById("cashDisplay")) {
-    document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
-  }
+  document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
 
   updatePortfolio();
   updateWatchlist();
@@ -237,15 +222,16 @@ function updatePortfolio() {
 
   for (let symbol in data.portfolio) {
     const shares = data.portfolio[symbol];
-    const price = stocks[symbol]?.price || 0;
-    const name = stocks[symbol]?.name || symbol;
+    const stock = stocks[symbol];
+    const price = stock ? stock.price : 0;
+    const name = stock ? stock.name : symbol;
     const value = shares * price;
 
     html += `
       <div class="card">
         <h2>${name} (${symbol})</h2>
         <p>Shares: ${shares}</p>
-        <p>Current Price: ${price ? "$" + price.toFixed(2) : "Search again to update price"}</p>
+        <p>Price: ${price ? "$" + price.toFixed(2) : "Search stock again to update price"}</p>
         <p>Value: $${value.toFixed(2)}</p>
       </div>
     `;
@@ -264,8 +250,8 @@ function updateWatchlist() {
 
     html += `
       <div class="card">
-        <h2>${stock?.name || symbol} (${symbol})</h2>
-        <p>Price: ${stock?.price ? "$" + stock.price.toFixed(2) : "Search again to update price"}</p>
+        <h2>${stock ? stock.name : symbol} (${symbol})</h2>
+        <p>Price: ${stock ? "$" + stock.price.toFixed(2) : "Search stock again to update price"}</p>
       </div>
     `;
   });
@@ -276,18 +262,21 @@ function updateWatchlist() {
 
 function updateLeaderboard() {
   const users = JSON.parse(localStorage.getItem("users")) || {};
-  const list = [];
+  let list = [];
 
   for (let username in users) {
     let netWorth = users[username].cash;
 
     for (let symbol in users[username].portfolio) {
       const shares = users[username].portfolio[symbol];
-      const price = stocks[symbol]?.price || 0;
+      const price = stocks[symbol] ? stocks[symbol].price : 0;
       netWorth += shares * price;
     }
 
-    list.push({ username, netWorth });
+    list.push({
+      username: username,
+      netWorth: netWorth
+    });
   }
 
   list.sort((a, b) => b.netWorth - a.netWorth);
@@ -310,7 +299,7 @@ function drawChart(symbol) {
   const ctx = canvas.getContext("2d");
 
   const basePrice = stocks[symbol].price;
-  const prices = [];
+  let prices = [];
 
   for (let i = 0; i < 12; i++) {
     prices.push(basePrice + Math.floor(Math.random() * 40 - 20));
@@ -326,8 +315,11 @@ function drawChart(symbol) {
     const x = index * 45 + 25;
     const y = 230 - (price / basePrice) * 100;
 
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
   });
 
   ctx.stroke();
