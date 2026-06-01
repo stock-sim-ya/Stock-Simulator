@@ -1,363 +1,286 @@
-const API_KEY = "YOUR_FINNHUB_API_KEY_HERE";
-
 let currentUser = null;
-let selectedStock = null;
-let selectedPrice = 0;
 
-function getUsers() {
-  return JSON.parse(localStorage.getItem("users")) || {};
-}
+const stocks = {
+  AAPL: { name: "Apple", price: 195 },
+  TSLA: { name: "Tesla", price: 178 },
+  NVDA: { name: "Nvidia", price: 1120 },
+  AMZN: { name: "Amazon", price: 185 },
+  GOOGL: { name: "Alphabet", price: 172 },
+  MSFT: { name: "Microsoft", price: 430 },
+  META: { name: "Meta", price: 485 },
+  NFLX: { name: "Netflix", price: 640 },
+  UBER: { name: "Uber", price: 68 },
+  DIS: { name: "Disney", price: 101 }
+};
 
-function saveUsers(users) {
-  localStorage.setItem("users", JSON.stringify(users));
-}
-
-function loginUser() {
+function createAccount() {
   const username = document.getElementById("usernameInput").value.trim();
 
   if (!username) {
-    alert("Enter a username.");
+    alert("Please enter a username.");
     return;
   }
 
-  const users = getUsers();
+  currentUser = username;
+
+  let users = JSON.parse(localStorage.getItem("users")) || {};
 
   if (!users[username]) {
     users[username] = {
       cash: 10000,
       portfolio: {},
       watchlist: [],
-      badges: [],
-      trades: 0
+      badges: ["Welcome Investor"]
     };
   }
 
-  currentUser = username;
-  saveUsers(users);
-  updateDashboard();
+  localStorage.setItem("users", JSON.stringify(users));
+
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("appPage").classList.remove("hidden");
+
+  document.getElementById("welcomeText").innerText = `Welcome, ${username}! Start searching stocks below.`;
+
+  updateAll();
+  showPage("search");
 }
 
-async function searchStock() {
-  const searchInput = document.getElementById("stockSearch").value.trim();
+function getUserData() {
+  const users = JSON.parse(localStorage.getItem("users")) || {};
+  return users[currentUser];
+}
 
-  if (!searchInput) {
-    alert("Type a company name or stock symbol.");
+function saveUserData(data) {
+  const users = JSON.parse(localStorage.getItem("users")) || {};
+  users[currentUser] = data;
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+function showPage(pageId) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.add("hidden");
+  });
+
+  document.getElementById(pageId).classList.remove("hidden");
+
+  if (pageId === "portfolio") updatePortfolio();
+  if (pageId === "watchlist") updateWatchlist();
+  if (pageId === "leaderboard") updateLeaderboard();
+  if (pageId === "badges") updateBadges();
+}
+
+function searchStock() {
+  const symbol = document.getElementById("stockSearch").value.toUpperCase().trim();
+
+  if (!stocks[symbol]) {
+    document.getElementById("stockResult").innerHTML =
+      `<h2>Stock not found</h2><p>Try AAPL, TSLA, NVDA, AMZN, GOOGL, MSFT, META, NFLX, UBER, or DIS.</p>`;
     return;
   }
 
-  const company = await findCompany(searchInput);
+  const stock = stocks[symbol];
 
-  if (!company) {
-    alert("Stock not found.");
+  document.getElementById("stockResult").innerHTML = `
+    <div class="stock-card">
+      <h2>${stock.name} (${symbol})</h2>
+      <h3>Price: $${stock.price}</h3>
+
+      <input id="sharesInput" type="number" placeholder="Number of shares">
+
+      <br>
+
+      <button onclick="buyStock('${symbol}')">Buy</button>
+      <button onclick="sellStock('${symbol}')">Sell</button>
+      <button onclick="addToWatchlist('${symbol}')">Add to Watchlist</button>
+
+      <canvas id="stockChart" width="560" height="260"></canvas>
+    </div>
+  `;
+
+  drawChart(symbol);
+}
+
+function buyStock(symbol) {
+  const shares = Number(document.getElementById("sharesInput").value);
+  const data = getUserData();
+  const cost = shares * stocks[symbol].price;
+
+  if (shares <= 0) {
+    alert("Enter a valid number of shares.");
     return;
   }
 
-  selectedStock = company;
-  selectedPrice = await getStockPrice(company.symbol);
-
-  document.getElementById("stockName").textContent = company.description;
-  document.getElementById("stockSymbol").textContent = company.symbol;
-  document.getElementById("stockPrice").textContent = "$" + selectedPrice.toFixed(2);
-
-  drawChart(company.symbol, selectedPrice);
-  loadNews(company.symbol);
-}
-
-async function findCompany(searchInput) {
-  const url = `https://finnhub.io/api/v1/search?q=${encodeURIComponent(searchInput)}&token=${API_KEY}`;
-  const response = await fetch(url);
-  const data = await response.json();
-
-  if (!data.result || data.result.length === 0) return null;
-
-  return data.result.find(stock => stock.type === "Common Stock") || data.result[0];
-}
-
-function isMarketOpen() {
-  const now = new Date();
-  const easternTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-
-  const day = easternTime.getDay();
-  const hour = easternTime.getHours();
-  const minute = easternTime.getMinutes();
-  const totalMinutes = hour * 60 + minute;
-
-  return day >= 1 && day <= 5 && totalMinutes >= 570 && totalMinutes < 960;
-}
-
-async function getStockPrice(symbol) {
-  if (isMarketOpen()) {
-    document.getElementById("marketStatus").textContent =
-      "Market open — real stock price.";
-
-    const realPrice = await fetchRealStockPrice(symbol);
-
-    localStorage.setItem(`${symbol}_savedPrice`, realPrice);
-    localStorage.setItem(`${symbol}_lastChangeDate`, getToday());
-
-    return realPrice;
+  if (cost > data.cash) {
+    alert("Not enough cash.");
+    return;
   }
 
-  document.getElementById("marketStatus").textContent =
-    "Market closed — game open, price changes only 1 cent per day.";
+  data.cash -= cost;
+  data.portfolio[symbol] = (data.portfolio[symbol] || 0) + shares;
 
-  return getClosedMarketPrice(symbol);
-}
-
-async function fetchRealStockPrice(symbol) {
-  const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
-  const response = await fetch(url);
-  const data = await response.json();
-
-  if (!data.c || data.c === 0) throw new Error("Price unavailable.");
-
-  return data.c;
-}
-
-function getClosedMarketPrice(symbol) {
-  const today = getToday();
-
-  let price = Number(localStorage.getItem(`${symbol}_savedPrice`)) || 100;
-  const lastChangeDate = localStorage.getItem(`${symbol}_lastChangeDate`);
-
-  if (lastChangeDate !== today) {
-    const direction = Math.random() < 0.5 ? -0.01 : 0.01;
-    price = Number((price + direction).toFixed(2));
-
-    localStorage.setItem(`${symbol}_savedPrice`, price);
-    localStorage.setItem(`${symbol}_lastChangeDate`, today);
+  if (!data.badges.includes("First Stock Bought")) {
+    data.badges.push("First Stock Bought");
   }
 
-  return price;
+  if (Object.keys(data.portfolio).length >= 3 && !data.badges.includes("Diversified Investor")) {
+    data.badges.push("Diversified Investor");
+  }
+
+  saveUserData(data);
+  updateAll();
+  alert(`Bought ${shares} shares of ${symbol}.`);
 }
 
-function buyShares() {
-  if (!currentUser) return alert("Login first.");
-  if (!selectedStock) return alert("Search a stock first.");
-
+function sellStock(symbol) {
   const shares = Number(document.getElementById("sharesInput").value);
-  if (shares <= 0) return alert("Enter shares.");
+  const data = getUserData();
 
-  const cost = shares * selectedPrice;
-  const users = getUsers();
-  const user = users[currentUser];
-
-  if (user.cash < cost) return alert("Not enough cash.");
-
-  user.cash -= cost;
-
-  if (!user.portfolio[selectedStock.symbol]) {
-    user.portfolio[selectedStock.symbol] = {
-      name: selectedStock.description,
-      shares: 0,
-      avgPrice: selectedPrice
-    };
+  if (!data.portfolio[symbol] || data.portfolio[symbol] < shares) {
+    alert("You do not own enough shares.");
+    return;
   }
 
-  user.portfolio[selectedStock.symbol].shares += shares;
-  user.trades++;
+  data.portfolio[symbol] -= shares;
+  data.cash += shares * stocks[symbol].price;
 
-  awardBadges(user);
-  saveUsers(users);
-  updateDashboard();
-}
-
-function sellShares() {
-  if (!currentUser) return alert("Login first.");
-  if (!selectedStock) return alert("Search a stock first.");
-
-  const shares = Number(document.getElementById("sharesInput").value);
-  const users = getUsers();
-  const user = users[currentUser];
-
-  if (!user.portfolio[selectedStock.symbol]) return alert("You do not own this stock.");
-  if (user.portfolio[selectedStock.symbol].shares < shares) return alert("Not enough shares.");
-
-  user.portfolio[selectedStock.symbol].shares -= shares;
-  user.cash += shares * selectedPrice;
-  user.trades++;
-
-  if (user.portfolio[selectedStock.symbol].shares === 0) {
-    delete user.portfolio[selectedStock.symbol];
+  if (data.portfolio[symbol] === 0) {
+    delete data.portfolio[symbol];
   }
 
-  awardBadges(user);
-  saveUsers(users);
-  updateDashboard();
+  saveUserData(data);
+  updateAll();
+  alert(`Sold ${shares} shares of ${symbol}.`);
 }
 
-function addToWatchlist() {
-  if (!currentUser) return alert("Login first.");
-  if (!selectedStock) return alert("Search a stock first.");
+function addToWatchlist(symbol) {
+  const data = getUserData();
 
-  const users = getUsers();
-  const user = users[currentUser];
-
-  if (!user.watchlist.includes(selectedStock.symbol)) {
-    user.watchlist.push(selectedStock.symbol);
+  if (!data.watchlist.includes(symbol)) {
+    data.watchlist.push(symbol);
   }
 
-  saveUsers(users);
-  updateDashboard();
+  if (!data.badges.includes("Watchlist Starter")) {
+    data.badges.push("Watchlist Starter");
+  }
+
+  saveUserData(data);
+  updateAll();
+  alert(`${symbol} added to watchlist.`);
 }
 
-function updateDashboard() {
-  const users = getUsers();
-  const user = users[currentUser];
+function updateAll() {
+  const data = getUserData();
+  document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
+  updatePortfolio();
+  updateWatchlist();
+  updateLeaderboard();
+  updateBadges();
+}
 
-  document.getElementById("currentUser").textContent = "User: " + currentUser;
-  document.getElementById("cashDisplay").textContent = "Cash: $" + user.cash.toFixed(2);
+function updatePortfolio() {
+  const data = getUserData();
+  let html = "";
 
-  let portfolioHTML = "";
-  let netWorth = user.cash;
+  for (let symbol in data.portfolio) {
+    const shares = data.portfolio[symbol];
+    const value = shares * stocks[symbol].price;
 
-  for (const symbol in user.portfolio) {
-    const stock = user.portfolio[symbol];
-    const savedPrice = Number(localStorage.getItem(`${symbol}_savedPrice`)) || stock.avgPrice;
-    const value = stock.shares * savedPrice;
-    netWorth += value;
-
-    portfolioHTML += `
-      <div class="item">
-        <strong>${symbol}</strong> - ${stock.shares} shares<br>
-        Value: $${value.toFixed(2)}
+    html += `
+      <div class="card">
+        <h2>${symbol}</h2>
+        <p>Shares: ${shares}</p>
+        <p>Value: $${value.toFixed(2)}</p>
       </div>
     `;
   }
 
-  document.getElementById("portfolioList").innerHTML =
-    portfolioHTML || "No stocks owned yet.";
+  if (!html) html = "<p>No stocks owned yet.</p>";
 
-  document.getElementById("netWorthDisplay").textContent =
-    "Net Worth: $" + netWorth.toFixed(2);
-
-  document.getElementById("watchlist").innerHTML =
-    user.watchlist.map(symbol => `<div class="item">${symbol}</div>`).join("") ||
-    "No watchlist stocks yet.";
-
-  document.getElementById("badges").innerHTML =
-    user.badges.map(badge => `<span class="badge">${badge}</span>`).join("") ||
-    "No badges yet.";
-
-  updateLeaderboard();
+  document.getElementById("portfolioList").innerHTML = html;
 }
 
-function awardBadges(user) {
-  if (user.trades >= 1 && !user.badges.includes("First Trade")) {
-    user.badges.push("First Trade");
-  }
+function updateWatchlist() {
+  const data = getUserData();
+  let html = "";
 
-  if (user.trades >= 5 && !user.badges.includes("Active Trader")) {
-    user.badges.push("Active Trader");
-  }
+  data.watchlist.forEach(symbol => {
+    html += `
+      <div class="card">
+        <h2>${symbol}</h2>
+        <p>${stocks[symbol].name}</p>
+        <p>Price: $${stocks[symbol].price}</p>
+      </div>
+    `;
+  });
 
-  if (Object.keys(user.portfolio).length >= 3 && !user.badges.includes("Diversified")) {
-    user.badges.push("Diversified");
-  }
+  if (!html) html = "<p>No stocks in watchlist yet.</p>";
 
-  if (user.cash >= 12000 && !user.badges.includes("Profit Master")) {
-    user.badges.push("Profit Master");
-  }
+  document.getElementById("watchlistList").innerHTML = html;
 }
 
 function updateLeaderboard() {
-  const users = getUsers();
+  const users = JSON.parse(localStorage.getItem("users")) || {};
+  const list = [];
 
-  const leaderboard = Object.keys(users).map(username => {
-    const user = users[username];
-    let netWorth = user.cash;
+  for (let username in users) {
+    let netWorth = users[username].cash;
 
-    for (const symbol in user.portfolio) {
-      const stock = user.portfolio[symbol];
-      const savedPrice = Number(localStorage.getItem(`${symbol}_savedPrice`)) || stock.avgPrice;
-      netWorth += stock.shares * savedPrice;
+    for (let symbol in users[username].portfolio) {
+      netWorth += users[username].portfolio[symbol] * stocks[symbol].price;
     }
 
-    return { username, netWorth };
-  });
+    list.push({ username, netWorth });
+  }
 
-  leaderboard.sort((a, b) => b.netWorth - a.netWorth);
+  list.sort((a, b) => b.netWorth - a.netWorth);
 
-  document.getElementById("leaderboard").innerHTML =
-    leaderboard.map((u, index) =>
-      `<div class="item">#${index + 1} ${u.username}: $${u.netWorth.toFixed(2)}</div>`
-    ).join("");
+  document.getElementById("leaderboardList").innerHTML = list.map(user =>
+    `<li>${user.username}: $${user.netWorth.toFixed(2)}</li>`
+  ).join("");
 }
 
-function drawChart(symbol, price) {
+function updateBadges() {
+  const data = getUserData();
+
+  document.getElementById("badgesList").innerHTML = data.badges.map(badge =>
+    `<div class="card">🏆 ${badge}</div>`
+  ).join("");
+}
+
+function drawChart(symbol) {
   const canvas = document.getElementById("stockChart");
   const ctx = canvas.getContext("2d");
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const basePrice = stocks[symbol].price;
+  const prices = [];
 
-  let points = [];
-  let start = price;
-
-  for (let i = 0; i < 20; i++) {
-    start += (Math.random() - 0.5) * 4;
-    points.push(start);
+  for (let i = 0; i < 12; i++) {
+    prices.push(basePrice + Math.floor(Math.random() * 40 - 20));
   }
 
-  const max = Math.max(...points);
-  const min = Math.min(...points);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  ctx.strokeStyle = "green";
+  ctx.lineWidth = 4;
   ctx.beginPath();
 
-  points.forEach((point, index) => {
-    const x = (index / (points.length - 1)) * canvas.width;
-    const y = canvas.height - ((point - min) / (max - min)) * canvas.height;
+  prices.forEach((price, index) => {
+    const x = index * 45 + 25;
+    const y = 230 - (price / basePrice) * 100;
 
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
 
-  ctx.strokeStyle = "#2563eb";
-  ctx.lineWidth = 3;
   ctx.stroke();
 
-  ctx.fillStyle = "#111827";
-  ctx.fillText(symbol + " chart", 10, 20);
+  ctx.fillStyle = "black";
+  ctx.font = "18px Arial";
+  ctx.fillText(`${symbol} simulated stock chart`, 20, 30);
 }
 
-async function loadNews(symbol) {
-  const today = new Date();
-  const weekAgo = new Date();
-  weekAgo.setDate(today.getDate() - 7);
-
-  const from = weekAgo.toISOString().split("T")[0];
-  const to = today.toISOString().split("T")[0];
-
-  try {
-    const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from}&to=${to}&token=${API_KEY}`;
-    const response = await fetch(url);
-    const news = await response.json();
-
-    if (!news || news.length === 0) {
-      document.getElementById("newsFeed").innerHTML = "No recent news found.";
-      return;
-    }
-
-    document.getElementById("newsFeed").innerHTML =
-      news.slice(0, 5).map(article => `
-        <div class="item">
-          <strong>${article.headline}</strong><br>
-          <a href="${article.url}" target="_blank">Read more</a>
-        </div>
-      `).join("");
-
-  } catch {
-    document.getElementById("newsFeed").innerHTML = "News could not load.";
-  }
-}
-
-function getToday() {
-  const now = new Date();
-
-  return (
-    now.getFullYear() +
-    "-" +
-    String(now.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(now.getDate()).padStart(2, "0")
-  );
+function logout() {
+  currentUser = null;
+  document.getElementById("appPage").classList.add("hidden");
+  document.getElementById("loginPage").classList.remove("hidden");
 }
