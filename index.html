@@ -82,7 +82,29 @@
 
       <!-- BUY STOCKS PAGE -->
       <section
-        id="stockBuying"
+        <section id="stockBuying" class="page hidden page-bg-search">
+
+  <h1>Buy Stocks</h1>
+
+  <p id="welcomeText"></p>
+
+  <h2>
+    Cash:
+    $<span id="cashDisplay">10000</span>
+  </h2>
+
+  <input
+    id="stockSearch"
+    placeholder="Search company or symbol"
+  >
+
+  <button onclick="searchStock()">
+    Find Stock
+  </button>
+
+  <div id="stockResult"></div>
+
+</section>
         class="page hidden page-bg-search"
       >
 
