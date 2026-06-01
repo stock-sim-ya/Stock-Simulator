@@ -1,39 +1,69 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f2f4f8;
-  margin: 0;
-  padding: 30px;
-}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <h1>📈 Stock Simulator</h1>
 
-.app {
-  max-width: 500px;
-  margin: auto;
-  background: white;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-  text-align: center;
-}
+    <div class="card">
+      <h2>User Account</h2>
+      <input id="usernameInput" placeholder="Enter username">
+      <button onclick="loginUser()">Login / Create Account</button>
+      <p id="currentUser"></p>
+      <p id="cashDisplay"></p>
+      <p id="netWorthDisplay"></p>
+    </div>
 
-input {
-  padding: 12px;
-  width: 70%;
-  font-size: 16px;
-}
+    <div class="card">
+      <h2>Search Stocks</h2>
+      <input id="stockSearch" placeholder="Apple, Tesla, AAPL...">
+      <button onclick="searchStock()">Search</button>
 
-button {
-  padding: 12px 18px;
-  font-size: 16px;
-  cursor: pointer;
-}
+      <h2 id="stockName">No stock selected</h2>
+      <p id="stockSymbol"></p>
+      <h1 id="stockPrice">$0.00</h1>
+      <p id="marketStatus"></p>
 
-#stockCard {
-  margin-top: 25px;
-  padding: 20px;
-  border-radius: 12px;
-  background: #f9fafb;
-}
+      <input id="sharesInput" type="number" placeholder="Shares" min="1">
+      <button onclick="buyShares()">Buy</button>
+      <button onclick="sellShares()">Sell</button>
+      <button onclick="addToWatchlist()">Add to Watchlist</button>
+    </div>
 
-#stockPrice {
-  font-size: 42px;
-}
+    <div class="card">
+      <h2>Stock Chart</h2>
+      <canvas id="stockChart" width="400" height="200"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Portfolio</h2>
+      <div id="portfolioList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Watchlist</h2>
+      <div id="watchlist"></div>
+    </div>
+
+    <div class="card">
+      <h2>Leaderboard</h2>
+      <div id="leaderboard"></div>
+    </div>
+
+    <div class="card">
+      <h2>Badges</h2>
+      <div id="badges"></div>
+    </div>
+
+    <div class="card">
+      <h2>News Feed</h2>
+      <div id="newsFeed"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
