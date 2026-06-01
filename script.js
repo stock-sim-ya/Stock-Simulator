@@ -89,6 +89,9 @@ const match =
     )
   ) || searchData.result[0];
 
+if (!match) {
+  match = searchData.result[0];
+}
     if (!match) {
       match = searchData.result[0];
     }
