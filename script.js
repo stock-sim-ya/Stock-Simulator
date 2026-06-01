@@ -1,4 +1,4 @@
-const API_KEY = "d8etek9r01qub7kep690d8etek9r01qub7kep69g";
+const API_KEY = "d8f1n7hr01qub7kffu90d8f1n7hr01qub7kffu9g";
 
 let currentUser = null;
 let stocks = {};
