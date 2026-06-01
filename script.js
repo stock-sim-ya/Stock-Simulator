@@ -56,17 +56,22 @@ function showPage(pageId) {
 }
 
 async function searchStock() {
-  const searchText = document.getElementById("stockSearch").value.trim();
+  let searchText = document.getElementById("stockSearch").value.trim();
 
   var searchTerm = searchText.toUpperCase();
 
-if (
-  searchTerm === "S&P 500" ||
-  searchTerm === "SP500" ||
-  searchTerm === "S AND P 500"
-) {
-  searchText = "SPY";
-}
+  if (
+    searchTerm === "S&P 500" ||
+    searchTerm === "SP500" ||
+    searchTerm === "S AND P 500"
+  ) {
+    searchText = "SPY";
+  }
+
+  if (!searchText) {
+    alert("Type a company name or stock symbol.");
+    return;
+  }
 
   document.getElementById("stockResult").innerHTML = "<h2>Searching...</h2>";
 
