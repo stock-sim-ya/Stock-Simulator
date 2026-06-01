@@ -78,7 +78,7 @@ async function searchStock() {
       return;
     }
 
-   const match =
+const match =
   searchData.result.find(item =>
     item.symbol &&
     (
