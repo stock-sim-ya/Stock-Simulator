@@ -235,8 +235,17 @@ function buyStock(symbol) {
   }
 
   data.cash -= cost;
-  data.portfolio[symbol] = (data.portfolio[symbol] || 0) + shares;
+if (!data.portfolio[symbol]) {
+  data.portfolio[symbol] = {
+    shares: 0,
+    price: stocks[symbol].price,
+    name: stocks[symbol].name
+  };
+}
 
+data.portfolio[symbol].shares += shares;
+data.portfolio[symbol].price = stocks[symbol].price;
+data.portfolio[symbol].name = stocks[symbol].name;
   addHistory(data, `Bought ${shares} shares of ${symbol} for $${cost.toFixed(2)}`);
 
   if (!data.badges.includes("First Stock Bought")) {
