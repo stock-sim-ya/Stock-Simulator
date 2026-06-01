@@ -60,14 +60,13 @@ async function searchStock() {
 
   var searchTerm = searchText.toUpperCase();
 
-  if (
-    searchTerm === "S&P 500" ||
-    searchTerm === "SP500" ||
-    searchTerm === "S AND P 500"
-  ) {
-    document.getElementById("stockSearch").value = "SPY";
-    return searchStock();
-  }
+if (
+  searchTerm === "S&P 500" ||
+  searchTerm === "SP500" ||
+  searchTerm === "S AND P 500"
+) {
+  searchText = "SPY";
+}
 
   document.getElementById("stockResult").innerHTML = "<h2>Searching...</h2>";
 
