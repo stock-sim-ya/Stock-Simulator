@@ -1,72 +1,197 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stock Simulator</title>
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="login-card">
-  <h1>📈 Stock Simulator</h1>
+  <!-- LOGIN PAGE -->
+  <div id="loginPage" class="login-bg">
+    <div class="login-card">
 
-  <input id="usernameInput" placeholder="Enter username">
-  <input id="passwordInput" type="password" placeholder="Enter password">
+      <h1>📈 Stock Simulator</h1>
+      <p>Trade stocks with virtual money.</p>
 
-  <button onclick="createAccount()">Login / Create Account</button>
-</div>
-  
-  <!-- APP SCREEN: ONLY SHOWS AFTER LOGIN -->
+      <input
+        type="text"
+        id="usernameInput"
+        placeholder="Username"
+      >
+
+      <input
+        type="password"
+        id="passwordInput"
+        placeholder="Password"
+      >
+
+      <button onclick="createAccount()">
+        Login / Create Account
+      </button>
+
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
   <div id="appPage" class="hidden">
+
+    <!-- SIDEBAR -->
     <div class="sidebar">
+
       <h2>📊 Stock Sim</h2>
-      <button onclick="showPage('stockBuying')">Buy Stocks</button>
-      <button onclick="showPage('portfolio')">Portfolio</button>
-      <button onclick="showPage('watchlist')">Watchlist</button>
-      <button onclick="showPage('leaderboard')">Leaderboard</button>
-      <button onclick="showPage('badges')">Badges</button>
-      <button onclick="showPage('news')">News</button>
-      <button onclick="logout()">Logout</button>
+
+      <button onclick="showPage('stockBuying')">
+        Buy Stocks
+      </button>
+
+      <button onclick="showPage('portfolio')">
+        Portfolio
+      </button>
+
+      <button onclick="showPage('watchlist')">
+        Watchlist
+      </button>
+
+      <button onclick="showPage('leaderboard')">
+        Leaderboard
+      </button>
+
+      <button onclick="showPage('history')">
+        History
+      </button>
+
+      <button onclick="showPage('badges')">
+        Badges
+      </button>
+
+      <button onclick="showPage('news')">
+        News
+      </button>
+
+      <button onclick="logout()">
+        Logout
+      </button>
+
     </div>
 
+    <!-- CONTENT -->
     <main>
-      <section id="stockBuying" class="page hidden page-bg-search">
-        <h1>Buy Stocks</h1>
-        <p id="welcomeText"></p>
-        <h2>Cash: $<span id="cashDisplay">10000</span></h2>
 
-        <input id="stockSearch" placeholder="Search company or symbol">
-        <button onclick="searchStock()">Find Stock</button>
+      <!-- BUY STOCKS PAGE -->
+      <section
+        id="stockBuying"
+        class="page hidden page-bg-search"
+      >
+
+        <h1>Buy Stocks</h1>
+
+        <p id="welcomeText"></p>
+
+        <h2>
+          Cash:
+          $
+          <span id="cashDisplay">
+            10000
+          </span>
+        </h2>
+
+        <br>
+
+        <input
+          id="stockSearch"
+          placeholder="Search company name or symbol"
+        >
+
+        <button onclick="searchStock()">
+          Find Stock
+        </button>
 
         <div id="stockResult"></div>
+
       </section>
 
-      <section id="portfolio" class="page hidden page-bg-portfolio">
+      <!-- PORTFOLIO PAGE -->
+      <section
+        id="portfolio"
+        class="page hidden page-bg-portfolio"
+      >
+
         <h1>Portfolio</h1>
+
         <div id="portfolioList"></div>
+
       </section>
 
-      <section id="watchlist" class="page hidden page-bg-watchlist">
+      <!-- WATCHLIST PAGE -->
+      <section
+        id="watchlist"
+        class="page hidden page-bg-watchlist"
+      >
+
         <h1>Watchlist</h1>
+
         <div id="watchlistList"></div>
+
       </section>
 
-      <section id="leaderboard" class="page hidden page-bg-leaderboard">
+      <!-- LEADERBOARD PAGE -->
+      <section
+        id="leaderboard"
+        class="page hidden page-bg-leaderboard"
+      >
+
         <h1>Leaderboard</h1>
+
         <ol id="leaderboardList"></ol>
+
       </section>
 
-      <section id="badges" class="page hidden page-bg-badges">
-        <h1>Badges</h1>
+      <!-- HISTORY PAGE -->
+      <section
+        id="history"
+        class="page hidden page-bg-history"
+      >
+
+        <h1>Trading History</h1>
+
+        <div id="historyList"></div>
+
+      </section>
+
+      <!-- BADGES PAGE -->
+      <section
+        id="badges"
+        class="page hidden page-bg-badges"
+      >
+
+        <h1>Achievements</h1>
+
         <div id="badgesList"></div>
+
       </section>
 
-      <section id="news" class="page hidden page-bg-news">
-        <h1>News Feed</h1>
-        <div class="card">📢 Stock market news will appear here.</div>
+      <!-- NEWS PAGE -->
+      <section
+        id="news"
+        class="page hidden page-bg-news"
+      >
+
+        <h1>Market News</h1>
+
+        <div class="card">
+          News from your API can appear here later.
+        </div>
+
       </section>
+
     </main>
+
   </div>
 
   <script src="script.js"></script>
+
 </body>
 </html>
