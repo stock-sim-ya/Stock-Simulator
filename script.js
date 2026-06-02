@@ -131,7 +131,7 @@ const match =
         <br>
 
         <button onclick="buyStock('${symbol}')">Buy</button>
-        <button onclick="sellStock('${symbol}')">Sell</button>
+        <button onclick="('${symbol}')">Sell</button>
         <button onclick="addToWatchlist('${symbol}')">Add to Watchlist</button>
 
         <canvas id="stockChart" width="560" height="260"></canvas>
@@ -258,7 +258,7 @@ data.portfolio[symbol].name = stocks[symbol].name;
   alert(`Bought ${shares} shares of ${symbol}.`);
 }
 
-function sellStock(symbol) {
+function (symbol) {
   const shares = Number(document.getElementById("sharesInput").value);
   const data = getUserData();
 
