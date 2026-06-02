@@ -3,6 +3,25 @@ const API_KEY = "d8f1n7hr01qub7kffu90d8f1n7hr01qub7kffu9g";
 let currentUser = null;
 let stocks = {};
 
+function getUsers() {
+  return JSON.parse(localStorage.getItem("users")) || {};
+}
+
+function saveUsers(users) {
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+function getUserData() {
+  const users = getUsers();
+  return users[currentUser];
+}
+
+function saveUserData(data) {
+  const users = getUsers();
+  users[currentUser] = data;
+  saveUsers(users);
+}
+
 function createAccount() {
   const username = document.getElementById("usernameInput").value.trim();
   const password = document.getElementById("passwordInput").value.trim();
@@ -12,7 +31,7 @@ function createAccount() {
     return;
   }
 
-  let users = JSON.parse(localStorage.getItem("users")) || {};
+  let users = getUsers();
 
   if (users[username]) {
     if (users[username].password !== password) {
@@ -31,7 +50,7 @@ function createAccount() {
   }
 
   currentUser = username;
-  localStorage.setItem("users", JSON.stringify(users));
+  saveUsers(users);
 
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("appPage").classList.remove("hidden");
@@ -75,9 +94,7 @@ async function searchStock() {
   document.getElementById("stockResult").innerHTML = "<h2>Searching...</h2>";
 
   try {
-    const searchUrl =
-      `https://finnhub.io/api/v1/search?q=${encodeURIComponent(searchText)}&token=${API_KEY}`;
-
+    const searchUrl = `https://finnhub.io/api/v1/search?q=${encodeURIComponent(searchText)}&token=${API_KEY}`;
     const searchResponse = await fetch(searchUrl);
     const searchData = await searchResponse.json();
 
@@ -101,9 +118,7 @@ async function searchStock() {
     const symbol = match.symbol;
     const name = match.description || symbol;
 
-    const quoteUrl =
-      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
-
+    const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
     const quoteResponse = await fetch(quoteUrl);
     const quoteData = await quoteResponse.json();
 
@@ -147,7 +162,6 @@ async function searchStock() {
 
 async function drawHistoricalChart(symbol) {
   const canvas = document.getElementById("stockChart");
-
   if (!canvas) return;
 
   const today = Math.floor(Date.now() / 1000);
@@ -174,7 +188,6 @@ async function drawHistoricalChart(symbol) {
 
 function drawLineChart(symbol, prices) {
   const canvas = document.getElementById("stockChart");
-
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
@@ -325,37 +338,8 @@ function addHistory(data, text) {
   });
 }
 
-function updateHistory() {
-  const data = getUserData();
-
-  if (!data.history || data.history.length === 0) {
-    document.getElementById("historyList").innerHTML =
-      "<p>No history yet.</p>";
-    return;
-  }
-
-  document.getElementById("historyList").innerHTML = data.history.map(item =>
-    `<div class="card">
-      <p>${item.text}</p>
-      <small>${item.time}</small>
-    </div>`
-  ).join("");
-}
-
-function getUserData() {
-  const users = JSON.parse(localStorage.getItem("users")) || {};
-  return users[currentUser];
-}
-
-function saveUserData(data) {
-  const users = JSON.parse(localStorage.getItem("users")) || {};
-  users[currentUser] = data;
-  localStorage.setItem("users", JSON.stringify(users));
-}
-
 function updateAll() {
   const data = getUserData();
-
   if (!data) return;
 
   document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
@@ -374,8 +358,8 @@ function updatePortfolio() {
   for (let symbol in data.portfolio) {
     const holding = data.portfolio[symbol];
 
-    const shares = holding.shares;
-    const price = stocks[symbol] ? stocks[symbol].price : holding.price;
+    const shares = Number(holding.shares) || 0;
+    const price = stocks[symbol] ? stocks[symbol].price : Number(holding.price) || 0;
     const name = stocks[symbol] ? stocks[symbol].name : holding.name || symbol;
     const value = shares * price;
 
@@ -413,17 +397,23 @@ function updateWatchlist() {
 }
 
 function updateLeaderboard() {
-  const users = JSON.parse(localStorage.getItem("users")) || {};
+  const users = getUsers();
   let list = [];
 
   for (let username in users) {
-    let netWorth = users[username].cash;
+    const user = users[username];
 
-    for (let symbol in users[username].portfolio) {
-      const holding = users[username].portfolio[symbol];
+    let netWorth = Number(user.cash) || 0;
 
-      const shares = holding.shares;
-      const price = stocks[symbol] ? stocks[symbol].price : holding.price;
+    if (!user.portfolio) {
+      user.portfolio = {};
+    }
+
+    for (let symbol in user.portfolio) {
+      const holding = user.portfolio[symbol];
+
+      const shares = Number(holding.shares) || 0;
+      const price = stocks[symbol] ? stocks[symbol].price : Number(holding.price) || 0;
 
       netWorth += shares * price;
     }
@@ -436,8 +426,15 @@ function updateLeaderboard() {
 
   list.sort((a, b) => b.netWorth - a.netWorth);
 
-  document.getElementById("leaderboardList").innerHTML = list.map(user =>
-    `<li>${user.username}: $${user.netWorth.toFixed(2)}</li>`
+  const leaderboardList = document.getElementById("leaderboardList");
+
+  if (list.length === 0) {
+    leaderboardList.innerHTML = "<li>No users yet.</li>";
+    return;
+  }
+
+  leaderboardList.innerHTML = list.map((user, index) =>
+    `<li>#${index + 1} ${user.username}: $${user.netWorth.toFixed(2)}</li>`
   ).join("");
 }
 
@@ -447,6 +444,41 @@ function updateBadges() {
   document.getElementById("badgesList").innerHTML = data.badges.map(badge =>
     `<div class="card">🏆 ${badge}</div>`
   ).join("");
+}
+
+function updateHistory() {
+  const data = getUserData();
+
+  if (!data.history || data.history.length === 0) {
+    document.getElementById("historyList").innerHTML =
+      "<p>No history yet.</p>";
+    return;
+  }
+
+  document.getElementById("historyList").innerHTML = data.history.map(item =>
+    `<div class="card">
+      <p>${item.text}</p>
+      <small>${item.time}</small>
+    </div>`
+  ).join("");
+}
+
+function resetLeaderboard() {
+  localStorage.removeItem("users");
+  currentUser = null;
+  stocks = {};
+
+  document.getElementById("appPage").classList.add("hidden");
+  document.getElementById("loginPage").classList.remove("hidden");
+
+  document.getElementById("usernameInput").value = "";
+  document.getElementById("passwordInput").value = "";
+
+  if (document.getElementById("leaderboardList")) {
+    document.getElementById("leaderboardList").innerHTML = "<li>No users yet.</li>";
+  }
+
+  alert("Leaderboard reset. Create a new account to start again.");
 }
 
 function logout() {
