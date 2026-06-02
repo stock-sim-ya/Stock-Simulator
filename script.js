@@ -57,8 +57,7 @@ function showPage(pageId) {
 
 async function searchStock() {
   let searchText = document.getElementById("stockSearch").value.trim();
-
-  var searchTerm = searchText.toUpperCase();
+  let searchTerm = searchText.toUpperCase();
 
   if (
     searchTerm === "S&P 500" ||
@@ -88,16 +87,16 @@ async function searchStock() {
       return;
     }
 
-const match =
-  searchData.result.find(item =>
-    item.symbol &&
-    (
-      item.type === "Common Stock" ||
-      item.type === "ETF" ||
-      item.type === "ETP" ||
-      item.type === "Index"
-    )
-  ) || searchData.result[0];
+    const match =
+      searchData.result.find(item =>
+        item.symbol &&
+        (
+          item.type === "Common Stock" ||
+          item.type === "ETF" ||
+          item.type === "ETP" ||
+          item.type === "Index"
+        )
+      ) || searchData.result[0];
 
     const symbol = match.symbol;
     const name = match.description || symbol;
@@ -131,7 +130,7 @@ const match =
         <br>
 
         <button onclick="buyStock('${symbol}')">Buy</button>
-        <button onclick="('${symbol}')">Sell</button>
+        <button onclick="sellStock('${symbol}')">Sell</button>
         <button onclick="addToWatchlist('${symbol}')">Add to Watchlist</button>
 
         <canvas id="stockChart" width="560" height="260"></canvas>
@@ -148,7 +147,8 @@ const match =
 
 async function drawHistoricalChart(symbol) {
   const canvas = document.getElementById("stockChart");
-  const ctx = canvas.getContext("2d");
+
+  if (!canvas) return;
 
   const today = Math.floor(Date.now() / 1000);
   const thirtyDaysAgo = today - 30 * 24 * 60 * 60;
@@ -165,8 +165,7 @@ async function drawHistoricalChart(symbol) {
       return;
     }
 
-    const prices = data.c;
-    drawLineChart(symbol, prices);
+    drawLineChart(symbol, data.c);
 
   } catch (error) {
     drawFallbackChart(symbol);
@@ -175,8 +174,10 @@ async function drawHistoricalChart(symbol) {
 
 function drawLineChart(symbol, prices) {
   const canvas = document.getElementById("stockChart");
-  const ctx = canvas.getContext("2d");
 
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
   const width = canvas.width;
   const height = canvas.height;
 
@@ -193,8 +194,10 @@ function drawLineChart(symbol, prices) {
   ctx.beginPath();
 
   prices.forEach((price, index) => {
-    const x = 30 + index * ((width - 60) / (prices.length - 1));
-    const y = height - 40 - ((price - min) / (max - min)) * (height - 80);
+    const x = 30 + index * ((width - 60) / (prices.length - 1 || 1));
+    const y = max === min
+      ? height / 2
+      : height - 40 - ((price - min) / (max - min)) * (height - 80);
 
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
@@ -235,17 +238,19 @@ function buyStock(symbol) {
   }
 
   data.cash -= cost;
-if (!data.portfolio[symbol]) {
-  data.portfolio[symbol] = {
-    shares: 0,
-    price: stocks[symbol].price,
-    name: stocks[symbol].name
-  };
-}
 
-data.portfolio[symbol].shares += shares;
-data.portfolio[symbol].price = stocks[symbol].price;
-data.portfolio[symbol].name = stocks[symbol].name;
+  if (!data.portfolio[symbol]) {
+    data.portfolio[symbol] = {
+      shares: 0,
+      price: stocks[symbol].price,
+      name: stocks[symbol].name
+    };
+  }
+
+  data.portfolio[symbol].shares += shares;
+  data.portfolio[symbol].price = stocks[symbol].price;
+  data.portfolio[symbol].name = stocks[symbol].name;
+
   addHistory(data, `Bought ${shares} shares of ${symbol} for $${cost.toFixed(2)}`);
 
   if (!data.badges.includes("First Stock Bought")) {
@@ -258,7 +263,7 @@ data.portfolio[symbol].name = stocks[symbol].name;
   alert(`Bought ${shares} shares of ${symbol}.`);
 }
 
-function (symbol) {
+function sellStock(symbol) {
   const shares = Number(document.getElementById("sharesInput").value);
   const data = getUserData();
 
@@ -267,17 +272,19 @@ function (symbol) {
     return;
   }
 
-  if (!data.portfolio[symbol] || data.portfolio[symbol] < shares) {
+  if (!data.portfolio[symbol] || data.portfolio[symbol].shares < shares) {
     alert("You do not own enough shares.");
     return;
   }
 
-  const value = shares * stocks[symbol].price;
+  const currentPrice = stocks[symbol] ? stocks[symbol].price : data.portfolio[symbol].price;
+  const value = shares * currentPrice;
 
-  data.portfolio[symbol] -= shares;
+  data.portfolio[symbol].shares -= shares;
   data.cash += value;
+  data.portfolio[symbol].price = currentPrice;
 
-  if (data.portfolio[symbol] === 0) {
+  if (data.portfolio[symbol].shares === 0) {
     delete data.portfolio[symbol];
   }
 
@@ -349,6 +356,8 @@ function saveUserData(data) {
 function updateAll() {
   const data = getUserData();
 
+  if (!data) return;
+
   document.getElementById("cashDisplay").innerText = data.cash.toFixed(2);
 
   updatePortfolio();
@@ -363,17 +372,18 @@ function updatePortfolio() {
   let html = "";
 
   for (let symbol in data.portfolio) {
-    const shares = data.portfolio[symbol];
-    const stock = stocks[symbol];
-    const price = stock ? stock.price : 0;
-    const name = stock ? stock.name : symbol;
+    const holding = data.portfolio[symbol];
+
+    const shares = holding.shares;
+    const price = stocks[symbol] ? stocks[symbol].price : holding.price;
+    const name = stocks[symbol] ? stocks[symbol].name : holding.name || symbol;
     const value = shares * price;
 
     html += `
       <div class="card">
         <h2>${name} (${symbol})</h2>
         <p>Shares: ${shares}</p>
-        <p>Price: ${price ? "$" + price.toFixed(2) : "Search again to update price"}</p>
+        <p>Price: $${price.toFixed(2)}</p>
         <p>Value: $${value.toFixed(2)}</p>
       </div>
     `;
@@ -410,8 +420,11 @@ function updateLeaderboard() {
     let netWorth = users[username].cash;
 
     for (let symbol in users[username].portfolio) {
-      const shares = users[username].portfolio[symbol];
-      const price = stocks[symbol] ? stocks[symbol].price : 0;
+      const holding = users[username].portfolio[symbol];
+
+      const shares = holding.shares;
+      const price = stocks[symbol] ? stocks[symbol].price : holding.price;
+
       netWorth += shares * price;
     }
 
